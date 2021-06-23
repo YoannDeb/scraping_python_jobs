@@ -14,7 +14,6 @@ def extract_soup(url):
         * else make soup (parse page).
 
     :param url: Url of the page to parse.
-
     :return: Soup (page parsed).
     """
     while True:
@@ -33,10 +32,10 @@ def extract_soup(url):
 
 
 def init_csv(csv_name, header_columns):
-    """ Create the csv file in /data folder.
+    """ Create the csv file in given folder.
 
     :param csv_name: The name of the csv file.
-    :param header_columns: a list with the name of the categories in the csv header
+    :param header_columns: A list with the name of columns in csv header
     """
     os.makedirs(pathlib.Path.cwd() / 'data', exist_ok=True)
     with open(
@@ -57,6 +56,11 @@ def append_to_csv(csv_name, information_lists):
 
 
 def extract_page_information(url):
+    """ Extracts all information in one page
+
+    :param url: url of origin
+    :return: a list of information inside a list of jobs
+    """
     jobs_soup = extract_soup(url)
     jobs = jobs_soup.select('.listing-company-name a')
 
@@ -85,6 +89,12 @@ def extract_page_information(url):
 
 
 def list_all_information(url, nb_of_pages):
+    """ Uses extract_page_information in multiple pages and concatenates the results
+
+    :param url: url of origin
+    :param nb_of_pages: will process from page one to the given page
+    :return: a list information inside a list of jobs
+    """
     lists_of_all_information = []
     for i in range(1, nb_of_pages + 1):
         current_url = f'{url}?page={i}'
@@ -94,6 +104,7 @@ def list_all_information(url, nb_of_pages):
 
 
 def entry_point():
+    # retrieve jobs
     header_columns = ["title", "url", "company", "type", "category"]
     csv_name = "python_org_jobs.csv"
     init_csv(csv_name, header_columns)
@@ -102,6 +113,7 @@ def entry_point():
     lists_of_all_information = list_all_information(url, nb_of_pages)
     append_to_csv(csv_name, lists_of_all_information)
 
+    # filter by category
     list_of_categories = ["Data_Analyst", "Developer_Engineer", "Manager_Executive", "Other", "Researcher_Scientist"]
     for i in range(0, 5):
         category = list_of_categories[i]
@@ -112,6 +124,24 @@ def entry_point():
         if lists_of_jobs_in_category:
             init_csv(f"Category_{category}.csv", header_columns)
             append_to_csv(f"Category_{category}.csv", lists_of_jobs_in_category)
+
+    # filter by type
+    raw_list_of_types = extract_soup(url).select("#mainnav .tier-1.element-2 .tier-2 a")
+    list_of_types = []
+    for job_type in raw_list_of_types:
+        list_of_types.append(job_type.text)
+
+    for i in range(0, (len(list_of_types))):
+        job_type = list_of_types[i]
+        lists_of_jobs_in_types = []
+        for job in lists_of_all_information:
+            if job_type in job[3]:
+                lists_of_jobs_in_types.append(job)
+        if lists_of_jobs_in_types:
+            filename_job_type = job_type.replace(" ", "_")
+            init_csv(f"Type_{filename_job_type}.csv", header_columns)
+            append_to_csv(f"Type_{filename_job_type}.csv", lists_of_jobs_in_types)
+
 
 if __name__ == '__main__':
     entry_point()
