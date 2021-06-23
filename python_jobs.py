@@ -32,20 +32,20 @@ def extract_soup(url):
     return page_soup
 
 
-def init_csv(csv_name, header_categories):
+def init_csv(csv_name, header_columns):
     """ Create the csv file in /data folder.
 
     :param csv_name: The name of the csv file.
-    :param header_categories: a list with the name of the categories in the csv header
+    :param header_columns: a list with the name of the categories in the csv header
     """
     os.makedirs(pathlib.Path.cwd() / 'data', exist_ok=True)
     with open(
             pathlib.Path.cwd() / 'data' / csv_name, 'w', newline='', encoding='utf-8-sig'
             ) as f:
-        csv.writer(f).writerow(header_categories)
+        csv.writer(f).writerow(header_columns)
 
 
-def append_csv(csv_name, information_lists):
+def append_to_csv(csv_name, information_lists):
     """Append csv file with a list of lists
 
     :param csv_name: name of the csv file
@@ -58,9 +58,6 @@ def append_csv(csv_name, information_lists):
 
 def extract_page_information(url):
     jobs_soup = extract_soup(url)
-
-    # print(jobs_soup)
-
     jobs = jobs_soup.select('.listing-company-name a')
 
     jobs_titles = []
@@ -84,28 +81,37 @@ def extract_page_information(url):
     jobs_information = []
     for i in range(0, len(jobs_titles)):
         jobs_information.append([jobs_titles[i], jobs_url[i], jobs_companies[i], jobs_types[i], jobs_categories[i]])
-
     return jobs_information
+
 
 def list_all_information(url, nb_of_pages):
     lists_of_all_information = []
     for i in range(1, nb_of_pages + 1):
-        url = f'{url}?page={i}'
-        lists_of_information = extract_page_information(url)
-#        for j in range(1, len(lists_of_information)):
+        current_url = f'{url}?page={i}'
+        lists_of_information = extract_page_information(current_url)
         lists_of_all_information += lists_of_information
     return lists_of_all_information
 
 
 def entry_point():
-    header_categories = ["title", "url", "company", "type", "category"]
+    header_columns = ["title", "url", "company", "type", "category"]
     csv_name = "python_org_jobs.csv"
-    init_csv(csv_name, header_categories)
+    init_csv(csv_name, header_columns)
     url = "https://www.python.org/jobs/"
     nb_of_pages = 4
     lists_of_all_information = list_all_information(url, nb_of_pages)
-    append_csv(csv_name, lists_of_all_information)
+    append_to_csv(csv_name, lists_of_all_information)
 
+    list_of_categories = ["Data_Analyst", "Developer_Engineer", "Manager_Executive", "Other", "Researcher_Scientist"]
+    for i in range(0, 5):
+        category = list_of_categories[i]
+        lists_of_jobs_in_category = []
+        for job in lists_of_all_information:
+            if category[:4] in job[4]:
+                lists_of_jobs_in_category.append(job)
+        if lists_of_jobs_in_category:
+            init_csv(f"Category_{category}.csv", header_columns)
+            append_to_csv(f"Category_{category}.csv", lists_of_jobs_in_category)
 
 if __name__ == '__main__':
     entry_point()
